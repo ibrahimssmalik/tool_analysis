@@ -28,7 +28,7 @@ def main():
         print(f"{category}: {count}")
     print()
 
-    qwiet_parser.export_summary("analysis/reports/qwiet_summary.json")
+    qwiet_parser.export_summary("reports/qwiet_summary.json")
     print()
 
     # Analyze against benchmark
@@ -44,15 +44,15 @@ def main():
 
     # Generate report
     print("Step 4: Generating analysis report")
-    analyzer.generate_report(comparison, "analysis/reports/qwiet_analysis.txt")
+    analyzer.generate_report(comparison, "reports/qwiet_analysis.txt")
     print()
 
     print("Analysis Complete!")
     print()
     print("Generated files:")
-    print("analysis/reports/qwiet_summary.json")
-    print("analysis/reports/qwiet_analysis.txt")
-    print("analysis/reports/qwiet_analysis.json")
+    print("reports/qwiet_summary.json")
+    print("reports/qwiet_analysis.txt")
+    print("reports/qwiet_analysis.json")
     print()
 
 
