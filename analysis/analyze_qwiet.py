@@ -33,7 +33,7 @@ def main():
 
     # Analyze against benchmark
     print("Step 2: Comparing against OWASP Benchmark")
-    analyzer = BenchmarkAnalyzer("merged_output.java")
+    analyzer = BenchmarkAnalyzer("../merged_output.java")
     analyzer.extract_test_cases()
     print()
 
