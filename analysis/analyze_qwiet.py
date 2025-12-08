@@ -14,7 +14,7 @@ def main():
 
     # Parse Qwiet results
     print("Step 1: Parsing Qwiet findings")
-    qwiet_parser = QwietParser("results/qwiet/all_findings.json")
+    qwiet_parser = QwietParser("../results/qwiet/all_findings.json")
     qwiet_parser.load()
     qwiet_parser.parse()
 
