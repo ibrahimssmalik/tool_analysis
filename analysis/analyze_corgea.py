@@ -1,18 +1,11 @@
 """
 Corgea Results Analysis Script
 """
-import sys
-import os
 
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
-
-from analysis.parsers.corgea_parser import CorgeaParser
-from analysis.benchmark_analyzer import BenchmarkAnalyzer
+from parsers.corgea_parser import CorgeaParser
+from benchmark_analyzer import BenchmarkAnalyzer
 
 def main():
-    os.chdir(project_root)
-
     print("Corgea Results Analysis")
     print()
 

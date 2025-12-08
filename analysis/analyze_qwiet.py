@@ -1,12 +1,9 @@
 """
 Qwiet Results Analysis Script
 """
-import sys
-import os
 
 from parsers.qwiet_parser import QwietParser
 from benchmark_analyzer import BenchmarkAnalyzer
-
 
 def main():
     print("Qwiet Results Analysis")
