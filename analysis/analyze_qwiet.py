@@ -55,6 +55,5 @@ def main():
     print("reports/qwiet_analysis.json")
     print()
 
-
 if __name__ == "__main__":
     main()
