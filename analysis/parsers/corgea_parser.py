@@ -169,6 +169,36 @@ class CorgeaParser:
 
         return dict(test_coverage)
 
+    def get_findings_with_test_ids(self) -> List[Dict[str, Any]]:
+        """
+        Get findings with test case IDs and mapped vulnerability types for analyzer
+        """
+        if not self.parsed_findings:
+            self.parse()
+
+        import re
+        enriched_findings = []
+
+        for finding in self.parsed_findings:
+            if finding.get('false_positive'):
+                continue
+
+            # Map CWE to benchmark category
+            cwe_id = finding.get('cwe_id', 'unknown')
+            vuln_type = self.normalize_cwe_to_benchmark(cwe_id)
+
+            # Create enriched finding for analyzer
+            enriched = {
+                'file_path': finding.get('file_name', ''),
+                'vuln_type': vuln_type,
+                'cwe_id': cwe_id,
+                'line': finding.get('line_number', 0),
+                'urgency': finding.get('urgency', 'unknown'),
+            }
+            enriched_findings.append(enriched)
+
+        return enriched_findings
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get comprehensive statistics about the findings"""
         if not self.parsed_findings:
@@ -200,7 +230,7 @@ if __name__ == "__main__":
     parser.load()
     parser.parse()
 
-    print("\n---Corgea Analysis Summary---")
+    print("\n=== Corgea Analysis Summary ===")
     stats = parser.get_statistics()
 
     print(f"\nTotal Issues: {stats['total_issues']}")
@@ -208,14 +238,14 @@ if __name__ == "__main__":
     print(f"False Positives: {stats['false_positives']}")
     print(f"Test Cases Covered: {stats['test_cases_covered']}")
 
-    print("\n---Vulnerability Categories (Benchmark)---")
+    print("\n--- Vulnerability Categories (Benchmark) ---")
     for category, count in list(stats['vulnerability_categories'].items())[:10]:
-        print(f"{category}: {count}")
+        print(f"  {category}: {count}")
 
-    print("\n---Top CWE Categories---")
+    print("\n--- Top CWE Categories ---")
     for cwe, count in list(stats['cwe_distribution'].items())[:10]:
-        print(f"{cwe}: {count}")
+        print(f"  {cwe}: {count}")
 
-    print("\n---Urgency Distribution---")
+    print("\n--- Urgency Distribution ---")
     for urgency, count in stats['urgency_distribution'].items():
-        print(f"{urgency}: {count}")
+        print(f"  {urgency}: {count}")

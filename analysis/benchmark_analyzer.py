@@ -1,268 +1,292 @@
-"""
-Analyzes security tool results against OWASP Benchmark expectations
-"""
-import re
 import json
-from typing import Dict, List, Set, Tuple
+import re
 from collections import defaultdict
-
+from typing import Dict, List, Set, Any
 
 class BenchmarkAnalyzer:
-    """Analyzes OWASP Benchmark test results"""
+    """Analyze security tool results against OWASP Benchmark with accurate metrics"""
 
-    # Map common vulnerability names to OWASP Benchmark categories
-    VULN_MAPPING = {
-        # Command Injection
-        'command injection': 'cmdi',
-        'os command injection': 'cmdi',
-        'code injection': 'cmdi',
-
-        # SQL Injection
-        'sql injection': 'sqli',
-        'sql': 'sqli',
-
-        # XSS
-        'cross-site scripting': 'xss',
-        'xss': 'xss',
-        'reflected xss': 'xss',
-
-        # Path Traversal
-        'path traversal': 'pathtraver',
-        'directory traversal': 'pathtraver',
-        'path manipulation': 'pathtraver',
-
-        # LDAP Injection
-        'ldap injection': 'ldapi',
-        'ldap': 'ldapi',
-
-        # XPath Injection
-        'xpath injection': 'xpathi',
-        'xpath': 'xpathi',
-
-        # Crypto Issues
-        'weak cryptography': 'crypto',
-        'insecure cryptographic': 'crypto',
-        'cryptographic issues': 'crypto',
-
-        # Weak Random
-        'weak random': 'weakrand',
-        'insecure random': 'weakrand',
-        'predictable random': 'weakrand',
-
-        # Hash Issues
-        'weak hash': 'hash',
-        'insecure hash': 'hash',
-        'hash': 'hash',
-
-        # Trust Boundary
-        'trust boundary': 'trustbound',
-        'trust boundary violation': 'trustbound',
-
-        # Secure Cookie
-        'secure cookie': 'securecookie',
-        'cookie security': 'securecookie',
-        'insecure cookie': 'securecookie',
-    }
-
-    def __init__(self, benchmark_file: str = "merged_output.java"):
-        """Initialize analyzer with benchmark file"""
-        self.benchmark_file = benchmark_file
-        self.test_cases = {}
-        self.vulnerability_counts = defaultdict(int)
-
-    def extract_test_cases(self):
-        """Extract test case information from benchmark file"""
-        print(f"Analyzing benchmark file: {self.benchmark_file}")
-
-        with open(self.benchmark_file, 'r') as f:
-            content = f.read()
-
-        # Pattern to match test case classes and their servlet mappings
-        # Example: @WebServlet(value = "/sqli-00/BenchmarkTest00001")
-        servlet_pattern = r'@WebServlet\(value\s*=\s*"/([\w-]+)/BenchmarkTest(\d+)"\)'
-        matches = re.findall(servlet_pattern, content)
-
-        for vuln_type, test_num in matches:
-            test_id = f"BenchmarkTest{test_num}"
-            self.test_cases[test_id] = {
-                'test_number': int(test_num),
-                'vulnerability_type': vuln_type,
-                'servlet_path': f"/{vuln_type}/BenchmarkTest{test_num}"
-            }
-            self.vulnerability_counts[vuln_type] += 1
-
-        print(f"Found {len(self.test_cases)} test cases")
-        print(f"\nVulnerability distribution in benchmark:")
-        for vuln_type, count in sorted(self.vulnerability_counts.items(), key=lambda x: x[1], reverse=True):
-            print(f"  {vuln_type}: {count}")
-
-        return self.test_cases
-
-    def normalize_vuln_type(self, vuln_name: str) -> str:
-        """Normalize vulnerability name to benchmark category"""
-        vuln_lower = vuln_name.lower().strip()
-
-        # Direct mapping
-        if vuln_lower in self.VULN_MAPPING:
-            return self.VULN_MAPPING[vuln_lower]
-
-        # Partial matching
-        for key, value in self.VULN_MAPPING.items():
-            if key in vuln_lower:
-                return value
-
-        return vuln_lower
-
-    def get_base_vuln_types(self) -> Dict[str, int]:
-        """Get vulnerability counts grouped by base type (without variant suffix)"""
-        base_counts = defaultdict(int)
-        for vuln_type, count in self.vulnerability_counts.items():
-            # Extract base type ('cmdi-00' -> 'cmdi')
-            base_type = vuln_type.rsplit('-', 1)[0] if '-' in vuln_type else vuln_type
-            base_counts[base_type] += count
-        return dict(base_counts)
-
-    def compare_tool_results(self, tool_name: str, tool_findings: Dict[str, int]) -> Dict[str, any]:
+    def __init__(self, expected_results_file: str):
         """
-        Compare tool findings against benchmark expectations
+        Initialize with expected results file
         """
-        if not self.test_cases:
-            self.extract_test_cases()
+        self.expected_results_file = expected_results_file
+        self.expected_results = None
+        self.load_expected_results()
 
-        # Normalize tool findings to benchmark categories
-        normalized_findings = defaultdict(int)
-        for vuln_name, count in tool_findings.items():
-            normalized = self.normalize_vuln_type(vuln_name)
-            normalized_findings[normalized] += count
+    def load_expected_results(self):
+        """Load expected results from JSON file"""
+        with open(self.expected_results_file, 'r') as f:
+            self.expected_results = json.load(f)
+        print(f"Loaded expected results for {len(self.expected_results['by_test_id'])} test cases")
 
-        # Get base vulnerability type counts from benchmark
-        base_vuln_counts = self.get_base_vuln_types()
+    def get_test_ids_from_tool_results(self, tool_findings: List[Dict[str, Any]]) -> Dict[str, Set[str]]:
+        """
+        Extract test case IDs from tool findings, grouped by vulnerability type
+        """
+        flagged_tests = defaultdict(set)
 
-        # Calculate metrics by base vulnerability type
-        results_by_type = {}
-        total_detected = 0
-        total_expected = 0
-        total_true_positives = 0
-        total_false_positives = 0
-        total_false_negatives = 0
+        for finding in tool_findings:
+            # Extract test case ID from file path or other fields
+            test_id = self._extract_test_id(finding)
+            if test_id:
+                vuln_type = finding.get('vuln_type', 'unknown')
+                flagged_tests[vuln_type].add(test_id)
 
-        # Process base types
-        all_types = set(base_vuln_counts.keys()) | set(normalized_findings.keys())
+        return {k: set(v) for k, v in flagged_tests.items()}
 
-        for base_type in sorted(all_types):
-            expected_count = base_vuln_counts.get(base_type, 0)
-            detected_count = normalized_findings.get(base_type, 0)
+    def _extract_test_id(self, finding: Dict[str, Any]) -> str:
+        """Extract test case ID from finding"""
+        # Try to extract from file_path
+        if 'file_path' in finding:
+            match = re.search(r'BenchmarkTest\d+', finding['file_path'])
+            if match:
+                return match.group(0)
 
-            if expected_count > 0: # Only count types in the benchmark
-                total_expected += expected_count
-                total_detected += detected_count
+        # Try other fields
+        for field in ['test_id', 'location', 'file', 'path']:
+            if field in finding:
+                match = re.search(r'BenchmarkTest\d+', str(finding[field]))
+                if match:
+                    return match.group(0)
 
-                # Calculate TP, FP, FN
-                true_positives = min(detected_count, expected_count)
-                false_positives = max(0, detected_count - expected_count)
-                false_negatives = max(0, expected_count - detected_count)
+        return None
 
-                total_true_positives += true_positives
-                total_false_positives += false_positives
-                total_false_negatives += false_negatives
-
-                # Calculate precision and recall
-                precision = true_positives / detected_count if detected_count > 0 else 0
-                recall = true_positives / expected_count if expected_count > 0 else 0
-                f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-
-                results_by_type[base_type] = {
-                    'expected': expected_count,
-                    'detected': detected_count,
-                    'true_positives': true_positives,
-                    'false_positives': false_positives,
-                    'false_negatives': false_negatives,
-                    'precision': round(precision, 3),
-                    'recall': round(recall, 3),
-                    'f1_score': round(f1_score, 3)
-                }
-
-        # Calculate overall metrics
-        overall_precision = total_true_positives / total_detected if total_detected > 0 else 0
-        overall_recall = total_true_positives / total_expected if total_expected > 0 else 0
-        overall_f1 = 2 * (overall_precision * overall_recall) / (overall_precision + overall_recall) if (overall_precision + overall_recall) > 0 else 0
-
-        # Identify unmapped findings (not in benchmark at all)
-        unmapped = {k: v for k, v in normalized_findings.items() if k not in base_vuln_counts}
-
-        return {
+    def calculate_metrics(self, tool_name: str, flagged_tests: Dict[str, Set[str]]) -> Dict[str, Any]:
+        """
+        Calculate accurate confusion matrix metrics for tool results
+        """
+        results = {
             'tool_name': tool_name,
-            'total_expected': total_expected,
-            'total_detected': total_detected,
-            'total_true_positives': total_true_positives,
-            'total_false_positives': total_false_positives,
-            'total_false_negatives': total_false_negatives,
-            'overall_precision': round(overall_precision, 3),
-            'overall_recall': round(overall_recall, 3),
-            'overall_f1_score': round(overall_f1, 3),
-            'detection_rate': round(total_detected / total_expected, 3) if total_expected > 0 else 0,
-            'results_by_vulnerability': results_by_type,
-            'unmapped_findings': unmapped
+            'by_category': {},
+            'overall': {}
         }
 
-    def generate_report(self, comparison_results: Dict, output_file: str):
-        """Generate a detailed analysis report"""
-        report = []
-        report.append(f"OWASP Benchmark Analysis Report: {comparison_results['tool_name']}")
-        report.append("")
+        # Get all vulnerability types from expected results
+        all_vuln_types = set(self.expected_results['summary'].keys())
 
-        report.append("OVERALL METRICS")
-        report.append(f"Total Expected Vulnerabilities: {comparison_results['total_expected']}")
-        report.append(f"Total Detected: {comparison_results['total_detected']}")
-        report.append(f"True Positives: {comparison_results['total_true_positives']}")
-        report.append(f"False Positives: {comparison_results['total_false_positives']}")
-        report.append(f"False Negatives: {comparison_results['total_false_negatives']}")
-        report.append(f"")
-        report.append(f"Precision: {comparison_results['overall_precision']:.1%}")
-        report.append(f"Recall: {comparison_results['overall_recall']:.1%}")
-        report.append(f"F1 Score: {comparison_results['overall_f1_score']:.3f}")
-        report.append(f"Detection Rate: {comparison_results['detection_rate']:.1%}")
-        report.append("")
+        # Calculate metrics for each vulnerability type
+        total_tp = 0
+        total_fp = 0
+        total_tn = 0
+        total_fn = 0
 
-        report.append("RESULTS BY VULNERABILITY TYPE")
-        report.append(f"{'Type':<15} {'Expected':>10} {'Detected':>10} {'TP':>8} {'FP':>8} {'FN':>8} {'Precision':>10} {'Recall':>10} {'F1':>8}")
+        for vuln_type in sorted(all_vuln_types):
+            # Get expected vulnerable and safe test IDs for this category
+            expected_vulnerable = set(self.expected_results['vulnerable'].get(vuln_type, []))
+            expected_safe = set(self.expected_results['safe'].get(vuln_type, []))
 
-        for vuln_type, metrics in sorted(comparison_results['results_by_vulnerability'].items()):
-            report.append(
-                f"{vuln_type:<15} "
-                f"{metrics['expected']:>10} "
-                f"{metrics['detected']:>10} "
-                f"{metrics['true_positives']:>8} "
-                f"{metrics['false_positives']:>8} "
-                f"{metrics['false_negatives']:>8} "
-                f"{metrics['precision']:>9.1%} "
-                f"{metrics['recall']:>9.1%} "
-                f"{metrics['f1_score']:>8.3f}"
-            )
+            # Get test IDs flagged by the tool for this category
+            tool_flagged = flagged_tests.get(vuln_type, set())
 
-        if comparison_results['unmapped_findings']:
-            report.append("")
-            report.append("UNMAPPED FINDINGS (not in OWASP Benchmark)")
-            for finding, count in comparison_results['unmapped_findings'].items():
-                report.append(f"  {finding}: {count}")
+            # Calculate confusion matrix
+            # TP: Tool flagged it AND it's actually vulnerable
+            tp = len(tool_flagged & expected_vulnerable)
 
-        report.append("")
+            # FP: Tool flagged it BUT it's actually safe
+            fp = len(tool_flagged & expected_safe)
 
-        report_text = "\n".join(report)
-        with open(output_file, 'w') as f:
-            f.write(report_text)
+            # FN: Tool didn't flag it BUT it's actually vulnerable
+            fn = len(expected_vulnerable - tool_flagged)
 
-        print(report_text)
-        print(f"\nReport saved to: {output_file}")
+            # TN: Tool didn't flag it AND it's actually safe
+            tn = len(expected_safe - tool_flagged)
 
-        # Save JSON version
-        json_output = output_file.replace('.txt', '.json')
-        with open(json_output, 'w') as f:
-            json.dump(comparison_results, f, indent=2)
-        print(f"JSON data saved to: {json_output}")
+            # Calculate metrics
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+            tpr = recall  # True Positive Rate = Recall
+            fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0  # False Positive Rate
 
-        return report_text
+            # Store category results
+            results['by_category'][vuln_type] = {
+                'total_tests': len(expected_vulnerable) + len(expected_safe),
+                'vulnerable_tests': len(expected_vulnerable),
+                'safe_tests': len(expected_safe),
+                'tool_flagged': len(tool_flagged),
+                'tp': tp,
+                'fp': fp,
+                'tn': tn,
+                'fn': fn,
+                'precision': precision,
+                'recall': recall,
+                'tpr': tpr,
+                'fpr': fpr,
+                'f1_score': f1_score
+            }
 
-if __name__ == "__main__":
-    analyzer = BenchmarkAnalyzer()
-    analyzer.extract_test_cases()
+            total_tp += tp
+            total_fp += fp
+            total_tn += tn
+            total_fn += fn
+
+        # Calculate overall metrics
+        overall_precision = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
+        overall_recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
+        overall_f1 = 2 * (overall_precision * overall_recall) / (overall_precision + overall_recall) if (overall_precision + overall_recall) > 0 else 0.0
+        overall_tpr = overall_recall
+        overall_fpr = total_fp / (total_fp + total_tn) if (total_fp + total_tn) > 0 else 0.0
+
+        results['overall'] = {
+            'total_tests': len(self.expected_results['by_test_id']),
+            'total_vulnerable': sum(len(v) for v in self.expected_results['vulnerable'].values()),
+            'total_safe': sum(len(v) for v in self.expected_results['safe'].values()),
+            'total_flagged': sum(len(v) for v in flagged_tests.values()),
+            'tp': total_tp,
+            'fp': total_fp,
+            'tn': total_tn,
+            'fn': total_fn,
+            'precision': overall_precision,
+            'recall': overall_recall,
+            'tpr': overall_tpr,
+            'fpr': overall_fpr,
+            'f1_score': overall_f1,
+            'score': overall_tpr - overall_fpr  # Scorecard metric
+        }
+
+        return results
+
+    def analyze_aggregated_counts(self, tool_name: str, vuln_counts: Dict[str, int]) -> Dict[str, Any]:
+        """
+        Analyze tools that only provide aggregated counts
+
+        For tools without test case IDs, we can only estimate metrics.
+        """
+        results = {
+            'tool_name': tool_name,
+            'by_category': {},
+            'overall': {}
+        }
+
+        total_tp = 0
+        total_fp = 0
+        total_tn = 0
+        total_fn = 0
+
+        for vuln_type, tool_count in vuln_counts.items():
+            summary = self.expected_results['summary'].get(vuln_type, {})
+            if not summary:
+                continue
+
+            expected_vulnerable = summary['vulnerable']
+            expected_safe = summary['safe']
+            total = summary['total']
+
+            # Cap tool_count at total test cases (since multiple findings per test possible)
+            # Assume if findings > total, it flagged all tests in category
+            if tool_count > total:
+                effective_flagged = total
+                tp = expected_vulnerable
+                fp = expected_safe
+                fn = 0
+                tn = 0
+            elif tool_count >= expected_vulnerable:
+                tp = expected_vulnerable
+                fp = tool_count - expected_vulnerable
+                fn = 0
+                tn = expected_safe - fp
+            else:
+                tp = tool_count
+                fp = 0
+                fn = expected_vulnerable - tp
+                tn = expected_safe
+                effective_flagged = tool_count
+
+            # Ensure non-negative
+            tn = max(0, tn)
+            fp = max(0, fp)
+            effective_flagged = min(tool_count, total)
+
+            # Calculate metrics
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+            tpr = recall
+            fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
+
+            results['by_category'][vuln_type] = {
+                'total_tests': total,
+                'vulnerable_tests': expected_vulnerable,
+                'safe_tests': expected_safe,
+                'tool_flagged_raw': tool_count, # Raw finding count from tool
+                'tool_flagged': effective_flagged, # Estimated unique test cases flagged
+                'tp': tp,
+                'fp': fp,
+                'tn': tn,
+                'fn': fn,
+                'precision': precision,
+                'recall': recall,
+                'tpr': tpr,
+                'fpr': fpr,
+                'f1_score': f1_score
+            }
+
+            total_tp += tp
+            total_fp += fp
+            total_tn += tn
+            total_fn += fn
+
+        # Calculate overall metrics
+        overall_precision = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
+        overall_recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
+        overall_f1 = 2 * (overall_precision * overall_recall) / (overall_precision + overall_recall) if (overall_precision + overall_recall) > 0 else 0.0
+        overall_tpr = overall_recall
+        overall_fpr = total_fp / (total_fp + total_tn) if (total_fp + total_tn) > 0 else 0.0
+
+        results['overall'] = {
+            'total_tests': len(self.expected_results['by_test_id']),
+            'total_vulnerable': sum(len(v) for v in self.expected_results['vulnerable'].values()),
+            'total_safe': sum(len(v) for v in self.expected_results['safe'].values()),
+            'total_flagged': sum(vuln_counts.values()),
+            'tp': total_tp,
+            'fp': total_fp,
+            'tn': total_tn,
+            'fn': total_fn,
+            'precision': overall_precision,
+            'recall': overall_recall,
+            'tpr': overall_tpr,
+            'fpr': overall_fpr,
+            'f1_score': overall_f1,
+            'score': overall_tpr - overall_fpr
+        }
+
+        return results
+
+    def print_analysis(self, results: Dict[str, Any]):
+        """Print formatted analysis results"""
+        print("=" * 80)
+        print(f"{results['tool_name']} - OWASP Benchmark Analysis")
+        print("=" * 80)
+
+        if 'note' in results:
+            print(f"\nNote: {results['note']}")
+
+        # Overall metrics
+        overall = results['overall']
+        print(f"\nOverall Results:")
+        print(f"  Total Test Cases:     {overall['total_tests']:4d}")
+        print(f"  Vulnerable Tests:     {overall['total_vulnerable']:4d} ({overall['total_vulnerable']/overall['total_tests']*100:.1f}%)")
+        print(f"  Safe Tests:           {overall['total_safe']:4d} ({overall['total_safe']/overall['total_tests']*100:.1f}%)")
+        print(f"  Tool Flagged:         {overall['total_flagged']:4d} ({overall['total_flagged']/overall['total_tests']*100:.1f}%)")
+        print(f"\n  True Positives (TP):  {overall['tp']:4d}")
+        print(f"  False Positives (FP): {overall['fp']:4d}")
+        print(f"  True Negatives (TN):  {overall['tn']:4d}")
+        print(f"  False Negatives (FN): {overall['fn']:4d}")
+        print(f"\n  Precision:            {overall['precision']*100:5.1f}%")
+        print(f"  Recall (TPR):         {overall['recall']*100:5.1f}%")
+        print(f"  False Positive Rate:  {overall['fpr']*100:5.1f}%")
+        print(f"  F1 Score:             {overall['f1_score']:.3f}")
+        print(f"  Score (TPR - FPR):    {overall['score']:.3f}")
+
+        # By category
+        print(f"\n{'Category':<15} {'Total':>6} {'Vuln':>6} {'Safe':>6} {'Flagged':>8} {'TP':>5} {'FP':>5} {'TN':>5} {'FN':>5} {'Prec':>6} {'Rec':>6} {'F1':>6}")
+        print("-" * 100)
+
+        for vuln_type in sorted(results['by_category'].keys()):
+            cat = results['by_category'][vuln_type]
+            print(f"{vuln_type:<15} {cat['total_tests']:6d} {cat['vulnerable_tests']:6d} {cat['safe_tests']:6d} {cat['tool_flagged']:8d} "
+                  f"{cat['tp']:5d} {cat['fp']:5d} {cat['tn']:5d} {cat['fn']:5d} "
+                  f"{cat['precision']*100:5.1f}% {cat['recall']*100:5.1f}% {cat['f1_score']:6.3f}")
+
+        print("=" * 80)
