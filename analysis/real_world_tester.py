@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 from real_world_parser import RealWorldCVEParser
-from testers import SemgrepTester, HorusecTester
+from testers import SemgrepTester, HorusecTester, CodeQLTester #, SnykTester
 from testers.base_tester import BaseTester
 from testers.utils import CVETestResult
 
@@ -16,7 +16,7 @@ class RealWorldTestRunner:
         self.available_tools = {
             'semgrep': SemgrepTester,
             'horusec': HorusecTester,
-            # 'codeql': CodeQLTester,
+            'codeql': CodeQLTester,
             # 'snyk': SnykTester,
         }
     
@@ -175,7 +175,7 @@ def main():
     # results = runner.run_single_tool(tester, limit=10)
     
     # Test specific tools
-    results = runner.run_multiple_tools(['semgrep','horusec'], limit=10)
+    results = runner.run_multiple_tools(['codeql'], limit=None)
     
     # Test all available tools
     # results = runner.run_all_tools()

@@ -36,7 +36,7 @@ for _, row in df.iterrows():
     cve_to_class[cve_id] = fix_cwe_1000_format(cwe_1000)
 
 # Save fixed version
-with open('../Real_world_vulnerability_dataset/cve_to_class_official_fixed.json', 'w') as f:
+with open('../Real_world_vulnerability_dataset/cve_to_class_official.json', 'w') as f:
     json.dump(cve_to_class, f, indent=2, sort_keys=True)
 
-print("Saved to ../Real_world_vulnerability_dataset/cve_to_class_official_fixed.json")
+print("Saved to ../Real_world_vulnerability_dataset/cve_to_class_official.json")
