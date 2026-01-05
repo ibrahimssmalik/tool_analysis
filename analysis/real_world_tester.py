@@ -175,7 +175,7 @@ def main():
     # results = runner.run_single_tool(tester, limit=10)
     
     # Test specific tools
-    results = runner.run_multiple_tools(['semgrep','horusec'], limit=None)
+    results = runner.run_multiple_tools(['semgrep','horusec'], limit=10)
     
     # Test all available tools
     # results = runner.run_all_tools()
