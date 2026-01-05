@@ -1,0 +1,28 @@
+================================================================================
+Qwiet - OWASP Benchmark Analysis (Estimated Metrics)
+================================================================================
+Overall Results:
+  Total Test Cases:     2740
+  Vulnerable Tests:     1913 (69.8%)
+  Safe Tests:            827 (30.2%)
+  Tool Flagged:          912 (33.3%)
+
+  True Positives (TP):   568 (estimated)
+  False Positives (FP):  111 (estimated)
+  True Negatives (TN):   150 (estimated)
+  False Negatives (FN):   20 (estimated)
+
+  Precision:             83.7%
+  Recall (TPR):          96.6%
+  False Positive Rate:   42.5%
+  F1 Score:             0.897
+  Score (TPR - FPR):    0.541
+
+
+Category         Total   Vuln   Safe  Flagged    TP    FP    TN    FN   Prec    Rec     F1
+----------------------------------------------------------------------------------------------------
+cmdi               251    167     84      251   167    84     0     0  66.5% 100.0%  0.799
+ldapi               59     42     17       59    42    17     0     0  71.2% 100.0%  0.832
+sqli               504    354    150      334   334     0   150    20 100.0%  94.4%  0.971
+xpathi              35     25     10       35    25    10     0     0  71.4% 100.0%  0.833
+================================================================================

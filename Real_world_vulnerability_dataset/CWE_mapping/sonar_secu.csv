@@ -1,0 +1,67 @@
+﻿key,name,type,cwe,cwe-1000
+java:S6362,Enabling JavaScript support for WebViews is security-sensitive,SECURITY_HOTSPOT,79,707
+java:S6363,Enabling file access for WebViews is security-sensitive,SECURITY_HOTSPOT,79,707
+java:S5247,Disabling auto-escaping in template engines is security-sensitive,SECURITY_HOTSPOT,79,707
+java:S2077,Formatting SQL queries is security-sensitive,SECURITY_HOTSPOT,89,707
+java:S4792,Configuring loggers is security-sensitive,SECURITY_HOTSPOT,117,707
+java:S5804,Allowing user enumeration is security-sensitive,SECURITY_HOTSPOT,200,664
+java:S5332,Using clear-text protocols is security-sensitive,SECURITY_HOTSPOT,200,664
+java:S5689,Disclosing fingerprints from web application technologies is security-sensitive,SECURITY_HOTSPOT,200,664
+java:S5344,Passwords should not be stored in plain-text or with a fast hashing algorithm,VULNERABILITY,256,664
+java:S5808,Authorizations should be based on strong decisions,VULNERABILITY,285,284
+java:S6293,Using biometric authentication without a cryptographic solution is security-sensitive,SECURITY_HOTSPOT,287,284
+java:S5527,Server hostnames should be verified during SSL/TLS connections,VULNERABILITY,295,284
+java:S4830,Server certificates should be verified during SSL/TLS connections,VULNERABILITY,295,284
+java:S6291,Using unencrypted databases in mobile applications is security-sensitive,SECURITY_HOTSPOT,311,693
+java:S6301,Mobile database encryption keys should not be disclosed,VULNERABILITY,311,693
+java:S6300,Using unencrypted files in mobile applications is security-sensitive,SECURITY_HOTSPOT,311,693
+java:S2092,"Creating cookies without the ""secure"" flag is security-sensitive",SECURITY_HOTSPOT,311,693
+java:S5324,Accessing Android external storage is security-sensitive,SECURITY_HOTSPOT,312,693
+java:S4426,Cryptographic keys should be robust,VULNERABILITY,326,693
+java:S5542,Encryption algorithms should be used with secure mode and padding scheme,VULNERABILITY,327,693
+java:S5547,Cipher algorithms should be robust,VULNERABILITY,327,693
+java:S4423,Weak SSL/TLS protocols should not be used,VULNERABILITY,327,693
+java:S2257,Using non-standard cryptographic algorithms is security-sensitive,SECURITY_HOTSPOT,327,693
+java:S3329,Cipher Block Chaining IVs should be unpredictable,VULNERABILITY,329,"693,710"
+java:S4347,"""SecureRandom"" seeds should not be predictable",VULNERABILITY,330,693
+java:S2245,Using pseudorandom number generators (PRNGs) is security-sensitive,SECURITY_HOTSPOT,338,693
+java:S5122,Having a permissive Cross-Origin Resource Sharing policy is security-sensitive,SECURITY_HOTSPOT,346,693
+java:S5659,JWT should be signed and verified with strong cipher algorithms,VULNERABILITY,347,693
+java:S4502,Disabling CSRF protections is security-sensitive,SECURITY_HOTSPOT,352,693
+java:S3752,Allowing both safe and unsafe HTTP methods is security-sensitive,SECURITY_HOTSPOT,352,693
+java:S5443,Using publicly writable directories is security-sensitive,SECURITY_HOTSPOT,377,664
+java:S5445,Insecure temporary file creation methods should not be used,VULNERABILITY,377,664
+java:S5876,A new session should be created during user authentication,VULNERABILITY,384,664
+java:S5852,Using slow regular expressions is security-sensitive,SECURITY_HOTSPOT,400,664
+java:S5042,Expanding archive files without controlling resource consumption is security-sensitive,SECURITY_HOTSPOT,409,664
+java:S4036,Searching OS commands in PATH is security-sensitive,SECURITY_HOTSPOT,426,664
+java:S4507,Delivering code in production with debug features activated is security-sensitive,SECURITY_HOTSPOT,489,710
+java:S5301,"""ActiveMQConnectionFactory"" should not be vulnerable to malicious code deserialization",VULNERABILITY,502,664
+java:S4544,Using unsafe Jackson deserialization configuration is security-sensitive,SECURITY_HOTSPOT,502,664
+java:S4434,Allowing deserialization of LDAP objects is security-sensitive,SECURITY_HOTSPOT,502,664
+java:S2115,A secure password should be used when connecting to a database,VULNERABILITY,521,284
+java:S4433,LDAP connections should be authenticated,VULNERABILITY,521,284
+java:S2647,Basic authentication should not be used,VULNERABILITY,522,664
+java:S6288,Authorizing non-authenticated users to use keys in the Android KeyStore is security-sensitive,SECURITY_HOTSPOT,522,664
+java:S1989,Exceptions should not be thrown from servlet methods,VULNERABILITY,600,703
+java:S2755,XML parsers should not be vulnerable to XXE attacks,VULNERABILITY,611,664
+java:S2612,Setting loose POSIX file permissions is security-sensitive,SECURITY_HOTSPOT,732,"284, 664"
+java:S2053,Hashes should include an unpredictable salt,VULNERABILITY,759,693
+java:S5693,Allowing requests with excessive content length is security-sensitive,SECURITY_HOTSPOT,770,435
+java:S2068,Hard-coded passwords are security-sensitive,SECURITY_HOTSPOT,798,693
+java:S6418,Hard-coded secrets are security-sensitive,SECURITY_HOTSPOT,798,693
+java:S4512,Setting JavaBean properties is security-sensitive,SECURITY_HOTSPOT,915,664
+java:S4684,"Persistent entities should not be used as arguments of ""@RequestMapping"" methods",VULNERABILITY,915,664
+java:S5322,Receiving intents is security-sensitive,SECURITY_HOTSPOT,925,284
+java:S5320,Broadcasting intents is security-sensitive,SECURITY_HOTSPOT,927,"284, 664"
+java:S3330,"Creating cookies without the ""HttpOnly"" flag is security-sensitive",SECURITY_HOTSPOT,1004,"284, 664"
+java:S4790,Using weak hashing algorithms is security-sensitive,SECURITY_HOTSPOT,1240,693
+java:S4601,"""HttpSecurity"" URL patterns should be correctly ordered",VULNERABILITY,,
+java:S1313,Using hardcoded IP addresses is security-sensitive,SECURITY_HOTSPOT,,
+java:S3749,Members of Spring components should be injected,VULNERABILITY,,
+java:S2658,Classes should not be loaded dynamically,VULNERABILITY,,
+java:S6373,XML parsers should not allow inclusion of arbitrary files,VULNERABILITY,,
+java:S6374,XML parsers should not load external schemas,VULNERABILITY,,
+java:S6377,XML signatures should be validated securely,VULNERABILITY,,
+java:S6376,XML parsers should not be vulnerable to Denial of Service attacks,VULNERABILITY,,
+java:S5679,OpenSAML2 should be configured to prevent authentication bypass,VULNERABILITY,,
