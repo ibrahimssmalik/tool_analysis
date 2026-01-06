@@ -14,7 +14,7 @@ class HorusecTester:
     
     def load_horusec_cwe_mapping(self) -> dict[str, str]:
         """Load Horusec rule -> CWE class mapping"""
-        csv_path = '../Real_world_vulnerability_dataset/CWE_mapping/Horusec_cwe.csv'
+        csv_path = Path(__file__).parent.parent.parent / 'Real_world_vulnerability_dataset' / 'CWE_mapping' / 'Horusec_cwe.csv'
         
         if not Path(csv_path).exists():
             print(f"Warning: {csv_path} not found")

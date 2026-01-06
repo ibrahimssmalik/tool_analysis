@@ -23,7 +23,7 @@ class InsiderTester(BaseTester):
         Load Insider CWE -> CWE-1000 class mapping
         CSV format: Rule num, CWE ID, CWE-1000
         """
-        csv_path = Path('../Real_world_vulnerability_dataset/CWE_mapping/Insider.csv')
+        csv_path = Path(__file__).parent.parent.parent / 'Real_world_vulnerability_dataset' / 'CWE_mapping' / 'Insider.csv'
 
         if not csv_path.exists():
             print(f"Warning: {csv_path} not found")

@@ -24,7 +24,7 @@ class CodeQLTester(BaseTester):
         """
         Load CodeQL CWE weakness -> CWE-1000 class mapping
         """
-        xlsx_path = Path('../Real_world_vulnerability_dataset/CWE_mapping/CodeQL.xlsx')
+        xlsx_path = Path(__file__).parent.parent.parent / 'Real_world_vulnerability_dataset' / 'CWE_mapping' / 'CodeQL.xlsx'
 
         if not xlsx_path.exists():
             print(f"Warning: {xlsx_path} not found")

@@ -61,7 +61,7 @@ class SonarQubeTester(BaseTester):
 
     def load_sonar_cwe_mapping(self) -> Dict[str, str]:
         """Load SonarQube rule key -> CWE-1000 class mapping"""
-        csv_path = Path('../Real_world_vulnerability_dataset/CWE_mapping/sonar_secu.csv')
+        csv_path = Path(__file__).parent.parent.parent / 'Real_world_vulnerability_dataset' / 'CWE_mapping' / 'sonar_secu.csv'
 
         if not csv_path.exists():
             print(f"Warning: {csv_path} not found")

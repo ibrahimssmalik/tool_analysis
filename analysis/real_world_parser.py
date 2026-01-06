@@ -239,7 +239,7 @@ def main():
         ]
     }
 
-    output_path = Path("results/real_world")
+    output_path = Path("../results/real_world")
     output_path.mkdir(parents=True, exist_ok=True)
 
     with open(output_path / "parser_test_results_complete.json", 'w') as f:

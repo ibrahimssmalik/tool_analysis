@@ -11,6 +11,8 @@ import pandas as pd
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict
 
+from sympy import content
+
 from testers.base_tester import BaseTester
 from testers.utils import Finding
 
@@ -88,7 +90,7 @@ class SpotBugsTester(BaseTester):
         CSV format: rule, cwe, cwe-1000
         Example: "Potential Command Injection (COMMAND_INJECTION),78,707"
         """
-        csv_path = Path('../Real_world_vulnerability_dataset/CWE_mapping/SBwFSB_cwe.csv')
+        csv_path = Path(__file__).parent.parent.parent / 'Real_world_vulnerability_dataset' / 'CWE_mapping' / 'SBwFSB_cwe.csv'
 
         if not csv_path.exists():
             print(f"Warning: {csv_path} not found")
@@ -130,52 +132,68 @@ class SpotBugsTester(BaseTester):
     def preprocess_java_file(self, content: str) -> str:
         """
         Preprocess Java code snippet for compilation
-        - Remove leading comments/licenses
-        - Extract class/interface definition
-        - Add minimal imports if missing
+        Properly handles: package, imports, annotations, class declarations
         """
         lines = content.split('\n')
         
-        # Find first class/interface/enum declaration
-        start_idx = 0
-        class_line_idx = -1
+        # Skip leading empty/comment lines
+        start = 0
+        while start < len(lines):
+            stripped = lines[start].strip()
+            if stripped and not stripped.startswith('//') and not stripped.startswith('/*'):
+                break
+            start += 1
+        
+        lines = lines[start:]
+        
+        # Separate package, imports, and code
+        package_line = None
+        import_lines = []
+        code_start = 0
+        
         for i, line in enumerate(lines):
             stripped = line.strip()
-            if (stripped.startswith('public class') or 
-                stripped.startswith('class ') or
-                stripped.startswith('public interface') or
-                stripped.startswith('interface ') or
-                stripped.startswith('public enum') or
-                stripped.startswith('enum ') or
-                (stripped.startswith('@') and i < len(lines) - 1)):
-                start_idx = i
-                class_line_idx = i
+            
+            if stripped.startswith('package '):
+                package_line = line
+                code_start = i + 1
+            elif stripped.startswith('import '):
+                import_lines.append(line)
+                code_start = i + 1
+            elif stripped:  # Non-empty, non-package, non-import
                 break
         
-        # Extract from class definition onward
-        code = '\n'.join(lines[start_idx:])
+        # Get the actual code (from first non-package/import line)
+        code_lines = lines[code_start:]
         
-        # Check if imports are missing (no import statements before class)
-        has_imports = any('import ' in line for line in lines[:class_line_idx] if class_line_idx > 0)
+        # Build result
+        result = []
         
-        # Add common imports if missing
-        if not has_imports:
-            common_imports = [
-                "import java.io.*;",
-                "import java.util.*;",
-                "import java.nio.*;",
-                "import javax.servlet.*;",
-                "import javax.servlet.http.*;",
-            ]
-            imports_str = '\n'.join(common_imports) + '\n\n'
-            code = imports_str + code
+        # Add imports (combine existing + our defaults)
+        all_imports = set(import_lines)
+        if 'import java.util.*;' not in ' '.join(import_lines):
+            all_imports.add('import java.util.*;')
+        if 'import java.io.*;' not in ' '.join(import_lines):
+            all_imports.add('import java.io.*;')
         
-        # If no class found, try to wrap in a dummy class
-        if not any(keyword in code for keyword in ['class ', 'interface ', 'enum ']):
-            # Wrap method snippets in a dummy class
-            code = f"public class DummyWrapper {{\n{code}\n}}"
+        result.extend(sorted(all_imports))
+        if all_imports:
+            result.append('')  # Blank line after imports
         
-        return code
+        # Add the code
+        result.extend(code_lines)
+        
+        # If no class found, wrap it
+        code_str = '\n'.join(result)
+        if not any(kw in code_str for kw in ['class ', 'interface ', 'enum ']):
+            result = [
+                'import java.util.*;',
+                'import java.io.*;',
+                '',
+                'public class DummyWrapper {'
+            ] + code_lines + ['}']
+        
+        return '\n'.join(result)
 
     def compile_java_files(self, source_dir: Path, output_dir: Path) -> bool:
         """
@@ -209,9 +227,8 @@ class SpotBugsTester(BaseTester):
                 "javac",
                 "-d", str(output_dir),
                 "-encoding", "UTF-8",
-                "-source", "8", # Java 8 compatibility
-                "-target", "8",
-                "-nowarn" # Suppress warnings
+                "--release", "8",
+                "-nowarn"
             ] + [str(f) for f in processed_files]
 
             result = subprocess.run(
@@ -222,8 +239,11 @@ class SpotBugsTester(BaseTester):
             )
 
             if result.returncode != 0:
-                # Compilation can fail for snippets - normal
-                print(f"Java compilation failed with return code {result.returncode}")
+                print("Java compilation failed")
+                print("STDOUT:")
+                print(result.stdout)
+                print("STDERR:")
+                print(result.stderr)
                 return False
 
             # Verify .class files were created

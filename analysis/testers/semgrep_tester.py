@@ -15,7 +15,7 @@ class SemgrepTester(BaseTester):
         self.semgrep_cwe_mapping = self.load_semgrep_cwe_mapping()
     
     def load_semgrep_cwe_mapping(self) -> dict[str, str]:
-        csv_path = '../Real_world_vulnerability_dataset/CWE_mapping/Semgrep_CWE-1000.csv'
+        csv_path = Path(__file__).parent.parent.parent / 'Real_world_vulnerability_dataset' / 'CWE_mapping' / 'Semgrep_CWE-1000.csv'
         
         if not Path(csv_path).exists():
             print(f"Warning: {csv_path} not found")
