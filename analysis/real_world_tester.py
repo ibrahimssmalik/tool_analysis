@@ -67,7 +67,7 @@ class RealWorldTestRunner:
                 print(f"Warning: Unknown tool '{tool_name}'. Available: {list(self.available_tools.keys())}")
                 continue
             
-            print(f"TESTING WITH {tool_name.upper()}\n")
+            print(f"\nTESTING WITH {tool_name.upper()}\n")
             
             # Initialize tool
             tester = self.available_tools[tool_name]()
@@ -77,7 +77,8 @@ class RealWorldTestRunner:
             all_results[tool_name] = results
             
             # Save individual results
-            self.save_results(results, tool_name)
+            if limit is None or limit == 165:
+                self.save_results(results, tool_name)
         
         return all_results
     
@@ -177,10 +178,10 @@ def main():
     # results = runner.run_single_tool(tester, limit=10)
     
     # Test specific tools
-    results = runner.run_multiple_tools(['insider'], limit=None)
+    # results = runner.run_multiple_tools(['semgrep'], limit=10)
     
     # Test all available tools
-    # results = runner.run_all_tools()
+    results = runner.run_all_tools(limit=10)
     
     # Print comparison
     runner.print_summary(results)
