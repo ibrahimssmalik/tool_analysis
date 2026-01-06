@@ -1,5 +1,6 @@
 """
 Base tester class for all security testing tools
+Provides common functionality to avoid code duplication
 """
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -18,6 +19,9 @@ class BaseTester(ABC):
     def run_scan(self, code_dir: Path) -> Tuple[List[Finding], float]:
         """
         Run the tool on a directory
+        
+        Returns:
+            (findings, scan_time)
         """
         pass
     
