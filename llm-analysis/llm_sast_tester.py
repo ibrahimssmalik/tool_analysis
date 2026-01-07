@@ -328,7 +328,7 @@ class OWASPBenchmarkTester:
                 if 'detected' in cached and 'detected_cwe' in cached:
                     print("Cached *")
                     results.append(cached)
-                    time.sleep(0.2)
+                    time.sleep(0.1)
                     continue
             
             # Load code
@@ -406,10 +406,11 @@ class OWASPBenchmarkTester:
             
         if results:
             print(f"\nFinal batch of {len(results)} tests, saving results...\n")
-            metrics = self.calculate_metrics(results)
-            self.save_results(llm_tester.model_name, llm_tester.model_id, results, metrics)
             results_cache.extend(results)
         
+        metrics = self.calculate_metrics(results_cache)
+        self.save_results(llm_tester.model_name, llm_tester.model_id, results_cache, metrics)
+
         return results_cache
     
     def calculate_metrics(self, results: List[Dict]) -> Dict:
@@ -527,8 +528,8 @@ def main():
         # ('deepseek', {
         #     'api_base': 'https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/deepseek-coder-33b-instruct/v1'
         # }),
-        ('granite', {}),
-        ('qwen', {})
+        # ('granite', {}),
+        # ('qwen', {})
     ]
     
     # Test each model
