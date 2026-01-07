@@ -3,11 +3,11 @@ import json
 import time
 import pandas as pd
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 from dataclasses import dataclass
 from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
-from litellm import completion, Timeout, RateLimitError, APIError
+from litellm import completion, Timeout, RateLimitError
 import re
 
 # load environment variables
@@ -394,11 +394,11 @@ class OWASPBenchmarkTester:
             # Save results every 100 tests
             if (idx + 1) % 100 == 0:
                 print(f"\nProcessed {idx + 1} tests, saving results...")
-                metrics = self.calculate_metrics(results)
-                self.save_results(llm_tester.model_name, llm_tester.model_id, results, metrics)
                 results_cache.extend(results)
+                metrics = self.calculate_metrics(results_cache)
+                self.save_results(llm_tester.model_name, llm_tester.model_id, results_cache, metrics)
                 results = [] # reset results after saving
-        
+
             # Rate limiting consideration
             if (idx + 1) % 50 == 0:
                 print(f"\nProcessed {idx+1} tests, pausing 10s to avoid rate limits...\n")
@@ -525,9 +525,9 @@ def main():
         # ('gpt4o', {}),
         # ('gpt-oss', {}),
         # ('claude', {}),
-        # ('deepseek', {
-        #     'api_base': 'https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/deepseek-coder-33b-instruct/v1'
-        # }),
+        ('deepseek', {
+            'api_base': 'https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/deepseek-coder-33b-instruct/v1'
+        }),
         # ('granite', {}),
         # ('qwen', {})
     ]
@@ -543,7 +543,7 @@ def main():
             llm_tester = LLMSASTTester(model_name, config)
             
             # limit=10 for quick testing, remove for full run
-            results = benchmark.test_llm(llm_tester, limit=500)
+            results = benchmark.test_llm(llm_tester, limit=None)
             
             # Calculate metrics
             metrics = benchmark.calculate_metrics(results)
