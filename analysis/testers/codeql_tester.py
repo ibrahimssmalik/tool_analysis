@@ -138,9 +138,9 @@ class CodeQLTester(BaseTester):
                 scan_time = time.time() - start_time
 
                 if analyze_result.returncode != 0:
-                    print(f"      ⚠ CodeQL analysis failed: {analyze_result.returncode}")
+                    print(f"CodeQL analysis failed: {analyze_result.returncode}")
                     if analyze_result.stderr:
-                        print(f"      ⚠ Stderr: {analyze_result.stderr[:500]}")
+                        print(f"Stderr: {analyze_result.stderr[:500]}")
                     return [], scan_time
 
                 # Step 3: Parse SARIF output
@@ -151,14 +151,14 @@ class CodeQLTester(BaseTester):
                     findings = self.parse_output(sarif_data, code_dir)
                     return findings, scan_time
                 else:
-                    print(f"      ⚠ SARIF output file not found")
+                    print(f"SARIF output file not found")
                     return [], scan_time
 
         except subprocess.TimeoutExpired:
-            print(f"      ⚠ CodeQL scan timeout")
+            print(f"CodeQL scan timeout")
             return [], time.time() - start_time
         except Exception as e:
-            print(f"      ⚠ CodeQL error: {e}")
+            print(f"CodeQL error: {e}")
             return [], time.time() - start_time
 
     def parse_output(self, sarif_data: Dict, code_dir: Path) -> List[Finding]:
