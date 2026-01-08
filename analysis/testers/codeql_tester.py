@@ -113,9 +113,9 @@ class CodeQLTester(BaseTester):
                 )
 
                 if create_result.returncode != 0:
-                    print(f"      ⚠ CodeQL database creation failed: {create_result.returncode}")
+                    print(f"CodeQL database creation failed: {create_result.returncode}")
                     if create_result.stderr:
-                        print(f"      ⚠ Stderr: {create_result.stderr[:500]}")
+                        print(f"Stderr: {create_result.stderr[:500]}")
                     return [], time.time() - start_time
 
                 # Step 2: Analyze database with security queries
@@ -185,7 +185,7 @@ class CodeQLTester(BaseTester):
                 file_uri = artifact.get('uri', '')
                 # CodeQL URIs are like "file:///path/to/file.java" or just "path/to/file.java"
                 if file_uri.startswith('file://'):
-                    file_path = Path(file_uri[7:])  # Remove 'file://'
+                    file_path = Path(file_uri[7:]) # Remove 'file://'
                 else:
                     file_path = Path(file_uri)
                 
