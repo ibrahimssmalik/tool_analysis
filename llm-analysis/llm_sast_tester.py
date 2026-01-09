@@ -39,11 +39,11 @@ class LLMSASTTester:
     def _get_model_id(self) -> str:
         """Get the actual model identifier for API calls"""
         models = {
-            'gpt4': 'gpt-4-turbo-preview', # via API
+            'gpt': 'gpt-5.2', # via API
             'gpt4o': 'gpt-4o', # via API
             'gpt-oss': 'gpt-oss:20b', # via Ollama
-            'claude': 'claude-sonnet-4-20250514', # via API
-            'claude-opus': 'claude-opus-4-20250514', # via API
+            'claude': 'claude-sonnet-4-5-20250929', # via API
+            'claude-opus': 'claude-opus-4-5-20251101', # via API
             'deepseek': 'text-completion-openai/deepseek-ai/deepseek-coder-33b-instruct', # via RITS
             'granite': 'granite3.3', # via Ollama
             'qwen': 'qwen2.5-coder:32b' # via Ollama
@@ -180,12 +180,12 @@ class LLMSASTTester:
             prompt = self.create_prompt(code, test_name)
             
             # Prepare API call parameters
-            if self.model_name == 'deepseek':
+            if self.model_name.lower() == 'deepseek':
                 # DeepSeek via RITS
                 api_params = {
                     'model': self.model_id,
                     'messages': [{'role': 'user', 'content': prompt}],
-                    'max_tokens': 500,
+                    'max_tokens': 300,
                     'temperature': 0,
                     'api_base': self.model_config.get('api_base', None),
                     'extra_headers': {
@@ -214,7 +214,7 @@ class LLMSASTTester:
                 api_params = {
                     'model': self.model_id,
                     'messages': [{'role': 'user', 'content': prompt}],
-                    'max_tokens': 500,
+                    'max_tokens': 300,
                     'temperature': 0
                 }
             
@@ -313,97 +313,103 @@ class OWASPBenchmarkTester:
         results = []
         test_cases = self.expected_results.head(limit) if limit else self.expected_results
         
-        for idx, row in test_cases.iterrows():
-            test_name = row['test_name']
-            expected_category = row['category']
-            expected_vuln = row['real_vulnerability']
-            expected_cwe = row['cwe']
+        try:
+            for idx, row in test_cases.iterrows():
+                test_name = row['test_name']
+                expected_category = row['category']
+                expected_vuln = row['real_vulnerability']
+                expected_cwe = row['cwe']
 
-            print(f"Testing {idx+1}/{len(test_cases)}: {test_name}...", end=' ')
-            
-            if test_name in cached_results:
-                cached = cached_results[test_name]
+                print(f"Testing {idx+1}/{len(test_cases)}: {test_name}...", end=' ')
                 
-                # Ensure required keys exist
-                if 'detected' in cached and 'detected_cwe' in cached:
-                    print("Cached *")
-                    results.append(cached)
-                    time.sleep(0.1)
+                if test_name in cached_results:
+                    cached = cached_results[test_name]
+                    
+                    # Ensure required keys exist
+                    if 'detected' in cached and 'detected_cwe' in cached:
+                        print("Cached *")
+                        results.append(cached)
+                        time.sleep(0.01)
+                        continue
+                
+                # Load code
+                code = self.load_test_code(test_name)
+                if not code:
                     continue
-            
-            # Load code
-            code = self.load_test_code(test_name)
-            if not code:
-                continue
-            
-            # Analyze with LLM
-            finding = llm_tester.analyze_code(code, test_name)
-            self.analysis_state = True
+                
+                # Analyze with LLM
+                finding = llm_tester.analyze_code(code, test_name)
+                self.analysis_state = True
 
-            if finding.confidence == 'error':
-                continue
-            
-            # Evaluate
-            true_positive = expected_vuln and finding.detected
-            false_positive = not expected_vuln and finding.detected
-            true_negative = not expected_vuln and not finding.detected
-            false_negative = expected_vuln and not finding.detected
-            
-            # Check CWE accuracy
-            cwe_correct = (finding.detected_cwe == expected_cwe) if finding.detected_cwe else False
-            
-            # Check category accuracy
-            if finding.detected_cwe:
-                detected_category = self.cwe_category_map.get(finding.detected_cwe)
-                category_correct = (expected_category == detected_category)
-            else:
-                detected_category = None
-                category_correct = None
-            
-            result = {
-                'test_name': test_name,
-                'expected_vuln': expected_vuln,
-                'detected': finding.detected,
-                'expected_category': expected_category,
-                'detected_category': detected_category,
-                'category_correct': category_correct,
-                'expected_cwe': expected_cwe,
-                'detected_cwe': finding.detected_cwe,
-                'cwe_correct': cwe_correct,
-                'true_positive': true_positive,
-                'false_positive': false_positive,
-                'true_negative': true_negative,
-                'false_negative': false_negative,
-                'confidence': finding.confidence,
-                'reasoning': finding.reasoning,
-                'response_time': finding.response_time
-            }
-            results.append(result)
-            
-            # Print result
-            if true_positive:
-                cwe_status = "Correct CWE" if cwe_correct else "Wrong CWE"
-                print(f"Correct TP - {cwe_status} ({finding.response_time:.1f}s) - Correct CWE: {expected_cwe}, Detected CWE: {finding.detected_cwe}")
-            elif false_positive:
-                print(f"Wrong FP - ({finding.response_time:.1f}s) - Detected CWE: {finding.detected_cwe}")
-            elif true_negative:
-                print(f"Correct TN - ({finding.response_time:.1f}s)")
-            else:  # false_negative
-                print(f"Wrong FN - ({finding.response_time:.1f}s) - Missed vulnerability CWE: {expected_cwe}")
-            
-            # Save results every 100 tests
-            if (idx + 1) % 100 == 0:
-                print(f"\nProcessed {idx + 1} tests, saving results...")
-                results_cache.extend(results)
+                if finding.confidence == 'error':
+                    continue
+                
+                # Evaluate
+                true_positive = expected_vuln and finding.detected
+                false_positive = not expected_vuln and finding.detected
+                true_negative = not expected_vuln and not finding.detected
+                false_negative = expected_vuln and not finding.detected
+                
+                # Check CWE accuracy
+                cwe_correct = (finding.detected_cwe == expected_cwe) if finding.detected_cwe else False
+                
+                # Check category accuracy
+                if finding.detected_cwe:
+                    detected_category = self.cwe_category_map.get(finding.detected_cwe)
+                    category_correct = (expected_category == detected_category)
+                else:
+                    detected_category = None
+                    category_correct = None
+                
+                result = {
+                    'test_name': test_name,
+                    'expected_vuln': expected_vuln,
+                    'detected': finding.detected,
+                    'expected_category': expected_category,
+                    'detected_category': detected_category,
+                    'category_correct': category_correct,
+                    'expected_cwe': expected_cwe,
+                    'detected_cwe': finding.detected_cwe,
+                    'cwe_correct': cwe_correct,
+                    'true_positive': true_positive,
+                    'false_positive': false_positive,
+                    'true_negative': true_negative,
+                    'false_negative': false_negative,
+                    'confidence': finding.confidence,
+                    'reasoning': finding.reasoning,
+                    'response_time': finding.response_time
+                }
+                results.append(result)
+                
+                # Print result
+                if true_positive:
+                    cwe_status = "Correct CWE" if cwe_correct else "Wrong CWE"
+                    print(f"Correct TP - {cwe_status} ({finding.response_time:.1f}s) - Correct CWE: {expected_cwe}, Detected CWE: {finding.detected_cwe}")
+                elif false_positive:
+                    print(f"Wrong FP - ({finding.response_time:.1f}s) - Detected CWE: {finding.detected_cwe}")
+                elif true_negative:
+                    print(f"Correct TN - ({finding.response_time:.1f}s)")
+                else:  # false_negative
+                    print(f"Wrong FN - ({finding.response_time:.1f}s) - Missed vulnerability CWE: {expected_cwe}")
+                
+                # Save results every 100 tests
+                if (idx + 1) % 100 == 0:
+                    print(f"\nProcessed {idx + 1} tests, saving results...")
+                    results_cache.extend(results)
+                    metrics = self.calculate_metrics(results_cache)
+                    self.save_results(llm_tester.model_name, llm_tester.model_id, results_cache, metrics)
+                    results = [] # reset results after saving
+
+                # Rate limiting consideration
+                if (idx + 1) % 50 == 0 and (idx + 1) < len(test_cases):
+                    print(f"\nProcessed {idx+1} tests, pausing 10s to avoid rate limits...\n")
+                    time.sleep(10)
+
+        except KeyboardInterrupt:
+                print("\nTesting interrupted...")
                 metrics = self.calculate_metrics(results_cache)
                 self.save_results(llm_tester.model_name, llm_tester.model_id, results_cache, metrics)
-                results = [] # reset results after saving
 
-            # Rate limiting consideration
-            if (idx + 1) % 50 == 0:
-                print(f"\nProcessed {idx+1} tests, pausing 10s to avoid rate limits...\n")
-                time.sleep(10)
-            
         if results:
             print(f"\nFinal batch of {len(results)} tests, saving results...\n")
             results_cache.extend(results)
@@ -522,14 +528,14 @@ def main():
     
     # Define models to test
     models = [
-        # ('gpt4o', {}),
+        # ('gpt', {}),
         # ('gpt-oss', {}),
         # ('claude', {}),
         ('deepseek', {
             'api_base': 'https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/deepseek-coder-33b-instruct/v1'
         }),
-        # ('granite', {}),
-        # ('qwen', {})
+        ('granite', {}),
+        ('qwen', {})
     ]
     
     # Test each model
